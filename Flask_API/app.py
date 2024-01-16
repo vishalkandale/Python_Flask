@@ -1,12 +1,15 @@
-from flask import Flask, render_template, url_for, request, redirect
+from flask import Flask, render_template, request, redirect
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+import logging
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://sjyqlzgj:a0NuohMAEl_7VqcNgwcAdA1NTbm2DhoN@mel.db.elephantsql.com/sjyqlzgj'
 app.app_context().push()
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
 db = SQLAlchemy(app)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class Todo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -21,13 +24,16 @@ class Todo(db.Model):
 def index():
     if request.method == 'POST':
         task_content = request.form['content']
+        
         new_task =Todo(content=task_content)
 
         try:    
             db.session.add(new_task)
             db.session.commit()
+            logger.info('Task Added Successfully')
             return redirect('/')
-        except:
+        except Exception as e:
+            logger.error(f'Error adding task: {str(e)}')
             return 'There was an issue adding your task'
     else:
         tasks = Todo.query.order_by(Todo.date_created).all()
@@ -40,8 +46,10 @@ def delete(id):
     try:
         db.session.delete(task_to_delete)
         db.session.commit()
+        logger.info(f'Task with ID {id} deleted Successfully')
         return redirect('/')
-    except:
+    except Exception as e:
+        logger.error(f'Error deleting task: {str(e)}')
         return 'There was a problem deleting that task'
 
 
@@ -53,8 +61,10 @@ def update(id):
 
         try:
             db.session.commit()
+            logger.info(f'Task with ID {id} updated Successfully')
             return redirect('/')
-        except:
+        except Exception as e:
+            logger.error(f'Error updating task: {str(e)}')
             return 'There was a problem updating that task'
     else:
         return render_template('update.html', task=task)
